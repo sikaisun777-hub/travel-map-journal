@@ -41,7 +41,7 @@ const i18n = {
     emptyNotes: "还没有日志",
     tipsTitle: "操作提示",
     tip1: "鼠标悬停地图区域可以查看名称。",
-    tip2: "点击省份进入该省城市地图。",
+    tip2: "单击省份进入该省城市地图。",
     tip3: "点击“返回全国”回到中国地图。",
     tip4: "日志会自动保存在浏览器本地。",
     countryBreadcrumb: "全国 · China",
@@ -164,7 +164,7 @@ function findProvinceConfig(rawName) {
   }
 
   for (const key of keys) {
-    if (rawName.includes(key) || key.includes(shortName)) {
+    if (String(rawName).includes(key) || key.includes(shortName)) {
       return {
         key,
         config: PROVINCE_MAP[key]
@@ -204,7 +204,7 @@ function getRegisteredMapRegionNames(mapName) {
   const mapInfo = echarts.getMap(mapName);
 
   if (!mapInfo) {
-    console.warn("没有找到已注册地图：", mapName);
+    console.warn("没有找到地图：", mapName);
     return [];
   }
 
@@ -271,32 +271,34 @@ function renderMap(mapName, title, names) {
       {
         name: title,
         type: "map",
+        mapType: mapName,
         map: mapName,
         roam: true,
         zoom: currentLevel === "country" ? 1.16 : 1.08,
         selectedMode: false,
 
         label: {
-          show: true,
-          color: "#f8f1e6",
-          fontSize: currentLevel === "country" ? 11 : 12
-        },
-
-        itemStyle: {
-          areaColor: "#28496e",
-          borderColor: "rgba(255,255,255,0.75)",
-          borderWidth: 1,
-          shadowColor: "rgba(216,180,106,0.28)",
-          shadowBlur: 12
-        },
-
-        emphasis: {
-          label: {
+          normal: {
+            show: true,
+            color: "#f8f1e6",
+            fontSize: currentLevel === "country" ? 11 : 12
+          },
+          emphasis: {
             show: true,
             color: "#111",
             fontWeight: "bold"
+          }
+        },
+
+        itemStyle: {
+          normal: {
+            areaColor: "#28496e",
+            borderColor: "rgba(255,255,255,0.75)",
+            borderWidth: 1,
+            shadowColor: "rgba(216,180,106,0.28)",
+            shadowBlur: 12
           },
-          itemStyle: {
+          emphasis: {
             areaColor: "#d8b46a",
             borderColor: "#fff5d7",
             borderWidth: 1.8,
@@ -335,8 +337,8 @@ function loadChina() {
 async function loadProvince(rawName) {
   const result = findProvinceConfig(rawName);
 
-  console.log("点击省份原始名称：", rawName);
-  console.log("匹配结果：", result);
+  console.log("点击省份：", rawName);
+  console.log("匹配省份配置：", result);
 
   if (!result) {
     selectedTitle.textContent = rawName;
@@ -353,12 +355,6 @@ async function loadProvince(rawName) {
   try {
     showLoading(true);
 
-    currentLevel = "province";
-    currentTitle = province.mapName;
-    selectedArea = province.mapName;
-
-    backBtn.disabled = false;
-
     const url = `${PROVINCE_BASE_URL}/${province.file}.js`;
 
     if (!loadedProvinceFiles[province.file]) {
@@ -366,18 +362,23 @@ async function loadProvince(rawName) {
       loadedProvinceFiles[province.file] = true;
     }
 
+    currentLevel = "province";
+    currentTitle = province.mapName;
+    selectedArea = province.mapName;
+    backBtn.disabled = false;
+
     const cityNames = getRegisteredMapRegionNames(province.mapName);
 
     console.log("进入省份：", provinceKey);
-    console.log("地图名称：", province.mapName);
-    console.log("读取到的市级地区：", cityNames);
+    console.log("省份地图名：", province.mapName);
+    console.log("读取到的城市：", cityNames);
 
     renderMap(province.mapName, province.mapName, cityNames);
 
     applyLanguage();
   } catch (error) {
     console.error(error);
-    alert(`${provinceKey} 地图加载失败。`);
+    alert(`${provinceKey} 地图加载失败。请检查网络，或者稍后刷新页面。`);
   } finally {
     showLoading(false);
   }
@@ -482,14 +483,18 @@ chart.on("click", function (params) {
 
   if (!params || !params.name) return;
 
-  selectArea(params.name);
+  const name = params.name;
+
+  selectArea(name);
 
   if (currentLevel === "country") {
-    loadProvince(params.name);
+    loadProvince(name);
   }
 });
 
-backBtn.addEventListener("click", loadChina);
+backBtn.addEventListener("click", function () {
+  loadChina();
+});
 
 langBtn.addEventListener("click", function () {
   currentLang = currentLang === "cn" ? "en" : "cn";

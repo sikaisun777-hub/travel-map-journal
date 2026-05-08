@@ -55,6 +55,7 @@ const i18n = {
     tooltipLevelCountry: "省级地图",
     tooltipLevelProvince: "城市 / 区县地图"
   },
+
   en: {
     title: "China Travel Map Journal",
     subtitle: "Click a province, explore cities, and record your travel memories",
@@ -105,7 +106,7 @@ function applyLanguage() {
     breadcrumb.textContent = t("countryBreadcrumb");
     statusText.textContent = t("countryStatus");
   } else {
-    breadcrumb.textContent = `${currentTitle}`;
+    breadcrumb.textContent = currentTitle;
     statusText.textContent = `${currentTitle} · ${t("provinceStatus")}`;
   }
 
@@ -167,6 +168,29 @@ function createMapData(names) {
     name,
     value: index + 1
   }));
+}
+
+/*
+  读取已经注册到 ECharts 里的地图区域名称。
+
+  例如：
+  加载 guangdong.js 后，ECharts 内部会注册“广东”地图。
+  这个函数会从“广东”地图里自动读取：
+  广州市、深圳市、珠海市、佛山市、东莞市……
+*/
+function getRegisteredMapRegionNames(mapName) {
+  const mapInfo = echarts.getMap(mapName);
+
+  if (!mapInfo || !mapInfo.geoJson || !mapInfo.geoJson.features) {
+    return [];
+  }
+
+  return mapInfo.geoJson.features
+    .map(feature => {
+      const properties = feature.properties || {};
+      return properties.name;
+    })
+    .filter(Boolean);
 }
 
 function renderMap(mapName, title, names) {
@@ -265,6 +289,7 @@ function loadChina() {
   backBtn.disabled = true;
 
   const provinceNames = Object.keys(PROVINCE_MAP);
+
   renderMap("china", "全国", provinceNames);
 
   applyLanguage();
@@ -294,7 +319,15 @@ async function loadProvince(rawName) {
       loadedProvinceFiles[province.file] = true;
     }
 
-    renderMap(province.mapName, province.mapName, []);
+    /*
+      关键修复：
+      不再传空数组 []。
+      而是从已经加载好的省份地图里，自动读取市级 / 区县级名称。
+    */
+    const cityNames = getRegisteredMapRegionNames(province.mapName);
+
+    renderMap(province.mapName, province.mapName, cityNames);
+
     applyLanguage();
   } catch (error) {
     console.error(error);

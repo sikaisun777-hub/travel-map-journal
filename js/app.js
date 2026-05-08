@@ -127,15 +127,52 @@ function applyLanguage() {
 function normalizeName(name) {
   if (!name) return "";
 
-  return name
-    .replace("省", "")
-    .replace("市", "")
-    .replace("自治区", "")
-    .replace("壮族", "")
-    .replace("回族", "")
-    .replace("维吾尔", "")
-    .replace("特别行政区", "")
+  return String(name)
+    .replace(/省/g, "")
+    .replace(/市/g, "")
+    .replace(/特别行政区/g, "")
+    .replace(/壮族自治区/g, "")
+    .replace(/回族自治区/g, "")
+    .replace(/维吾尔自治区/g, "")
+    .replace(/自治区/g, "")
+    .replace(/壮族/g, "")
+    .replace(/回族/g, "")
+    .replace(/维吾尔/g, "")
+    .replace(/\s/g, "")
     .trim();
+}
+
+function findProvinceConfig(rawName) {
+  const shortName = normalizeName(rawName);
+
+  if (PROVINCE_MAP[shortName]) {
+    return {
+      key: shortName,
+      config: PROVINCE_MAP[shortName]
+    };
+  }
+
+  const keys = Object.keys(PROVINCE_MAP);
+
+  for (const key of keys) {
+    if (normalizeName(key) === shortName) {
+      return {
+        key,
+        config: PROVINCE_MAP[key]
+      };
+    }
+  }
+
+  for (const key of keys) {
+    if (rawName.includes(key) || key.includes(shortName)) {
+      return {
+        key,
+        config: PROVINCE_MAP[key]
+      };
+    }
+  }
+
+  return null;
 }
 
 function showLoading(show) {
@@ -163,34 +200,34 @@ function loadScript(src) {
   });
 }
 
-function createMapData(names) {
-  return names.map((name, index) => ({
-    name,
-    value: index + 1
-  }));
-}
-
-/*
-  读取已经注册到 ECharts 里的地图区域名称。
-
-  例如：
-  加载 guangdong.js 后，ECharts 内部会注册“广东”地图。
-  这个函数会从“广东”地图里自动读取：
-  广州市、深圳市、珠海市、佛山市、东莞市……
-*/
 function getRegisteredMapRegionNames(mapName) {
   const mapInfo = echarts.getMap(mapName);
 
-  if (!mapInfo || !mapInfo.geoJson || !mapInfo.geoJson.features) {
+  if (!mapInfo) {
+    console.warn("没有找到已注册地图：", mapName);
     return [];
   }
 
-  return mapInfo.geoJson.features
+  const geo = mapInfo.geoJson || mapInfo.geoJSON;
+
+  if (!geo || !geo.features) {
+    console.warn("地图没有 features：", mapName, mapInfo);
+    return [];
+  }
+
+  return geo.features
     .map(feature => {
       const properties = feature.properties || {};
       return properties.name;
     })
     .filter(Boolean);
+}
+
+function createMapData(names) {
+  return names.map((name, index) => ({
+    name,
+    value: index + 1
+  }));
 }
 
 function renderMap(mapName, title, names) {
@@ -296,12 +333,22 @@ function loadChina() {
 }
 
 async function loadProvince(rawName) {
-  const shortName = normalizeName(rawName);
-  const province = PROVINCE_MAP[shortName];
+  const result = findProvinceConfig(rawName);
 
-  if (!province) {
+  console.log("点击省份原始名称：", rawName);
+  console.log("匹配结果：", result);
+
+  if (!result) {
+    selectedTitle.textContent = rawName;
+    selectedDesc.textContent =
+      currentLang === "cn"
+        ? `暂时没有找到 ${rawName} 的省份地图配置。请检查 js/province-map.js。`
+        : `No province map config found for ${rawName}. Please check js/province-map.js.`;
     return;
   }
+
+  const provinceKey = result.key;
+  const province = result.config;
 
   try {
     showLoading(true);
@@ -319,19 +366,18 @@ async function loadProvince(rawName) {
       loadedProvinceFiles[province.file] = true;
     }
 
-    /*
-      关键修复：
-      不再传空数组 []。
-      而是从已经加载好的省份地图里，自动读取市级 / 区县级名称。
-    */
     const cityNames = getRegisteredMapRegionNames(province.mapName);
+
+    console.log("进入省份：", provinceKey);
+    console.log("地图名称：", province.mapName);
+    console.log("读取到的市级地区：", cityNames);
 
     renderMap(province.mapName, province.mapName, cityNames);
 
     applyLanguage();
   } catch (error) {
     console.error(error);
-    alert(`${shortName} 地图加载失败。`);
+    alert(`${provinceKey} 地图加载失败。`);
   } finally {
     showLoading(false);
   }
@@ -432,6 +478,8 @@ function escapeHtml(str) {
 }
 
 chart.on("click", function (params) {
+  console.log("地图点击事件：", params);
+
   if (!params || !params.name) return;
 
   selectArea(params.name);

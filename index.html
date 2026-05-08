@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Travel Map Journal</title>
+
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">✦</div>
+        <div>
+          <h1 data-i18n="title">中国旅行日志地图</h1>
+          <p data-i18n="subtitle">点击省份，进入城市地图，记录你的旅行足迹</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button id="langBtn" class="ghost-btn">EN</button>
+        <button id="backBtn" class="main-btn" disabled data-i18n="back">返回全国</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="map-section">
+        <div class="map-card">
+          <div class="map-header">
+            <div>
+              <span class="eyebrow" data-i18n="mapMode">地图模式</span>
+              <h2 id="breadcrumb">全国 · China</h2>
+            </div>
+
+            <div class="status-pill" id="statusText" data-i18n="countryMode">
+              全国省级地图
+            </div>
+          </div>
+
+          <div id="map"></div>
+
+          <div id="loading" class="loading">
+            <div class="loader"></div>
+            <span data-i18n="loading">地图加载中...</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="panel-card hero-card">
+          <span class="eyebrow" data-i18n="journal">Travel Journal</span>
+          <h2 id="selectedTitle" data-i18n="selectHint">选择一个地区</h2>
+          <p id="selectedDesc" data-i18n="selectDesc">
+            点击地图上的省份或城市，开始记录你的旅行计划、回忆和路线。
+          </p>
+        </div>
+
+        <div class="panel-card">
+          <div class="section-title">
+            <h3 data-i18n="quickNote">快速旅行日志</h3>
+            <span id="noteCount">0</span>
+          </div>
+
+          <textarea id="noteInput" placeholder="写下你想去的地方、美食、路线或回忆..." data-placeholder-cn="写下你想去的地方、美食、路线或回忆..." data-placeholder-en="Write places, food, routes or memories..."></textarea>
+
+          <button id="saveNoteBtn" class="main-btn full" data-i18n="saveNote">
+            保存日志
+          </button>
+        </div>
+
+        <div class="panel-card">
+          <div class="section-title">
+            <h3 data-i18n="myNotes">我的日志</h3>
+            <button id="clearBtn" class="text-btn" data-i18n="clear">清空</button>
+          </div>
+
+          <div id="notesList" class="notes-list">
+            <div class="empty" data-i18n="emptyNotes">还没有日志</div>
+          </div>
+        </div>
+
+        <div class="panel-card tips-card">
+          <h3 data-i18n="tipsTitle">操作提示</h3>
+          <ul>
+            <li data-i18n="tip1">鼠标悬停地图区域可以查看名称。</li>
+            <li data-i18n="tip2">点击省份进入该省城市地图。</li>
+            <li data-i18n="tip3">点击“返回全国”回到中国地图。</li>
+            <li data-i18n="tip4">日志会自动保存在浏览器本地。</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- ECharts v4，与官方旧版地图 JS 更稳定匹配 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js"></script>
+
+  <!-- 中国全国地图 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
+
+  <!-- 省份映射文件：以后要改地图文件，主要改这里 -->
+  <script src="./js/province-map.js"></script>
+
+  <!-- 主功能逻辑 -->
+  <script src="./js/app.js"></script>
+</body>
+</html>
